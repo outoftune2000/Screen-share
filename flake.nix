@@ -16,12 +16,12 @@
           ninja
           pkg-config
           gcc
+          git
         ];
 
         runtimeDeps = with pkgs; [
           SDL2
           ffmpeg
-          libdatachannel
           nlohmann_json
           openssl
           srtp
@@ -30,6 +30,7 @@
           avahi
           libuuid
           libxcb
+          libxdmcp
           libxfixes
           libva
         ];
@@ -49,7 +50,6 @@
 
           cmakeFlags = [
             "-DCMAKE_BUILD_TYPE=Release"
-            "-DWEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL=ON"
           ];
 
           installPhase = ''
