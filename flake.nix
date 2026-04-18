@@ -43,7 +43,7 @@
 
           src = self;
 
-          nativeBuildInputs = buildDeps ++ [ pkgs.wrapGAppsHook ];
+          nativeBuildInputs = buildDeps ++ [ pkgs.wrapGAppsHook3 ];
 
           buildInputs = runtimeDeps;
 
