@@ -19,7 +19,7 @@ if(UNIX)
 endif()
 
 if(WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL)
-    pkg_check_modules(DATACHANNEL REQUIRED IMPORTED_TARGET datachannel)
+    find_package(libdatachannel REQUIRED)
 else()
     include(FetchContent)
     FetchContent_Declare(
@@ -70,8 +70,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    $<$<BOOL:${WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL}>:PkgConfig::DATACHANNEL>
-    $<$<NOT:$<BOOL:${WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL}>>:datachannel>
+    datachannel
     PkgConfig::FFMPEG
     SDL2::SDL2
     Threads::Threads
