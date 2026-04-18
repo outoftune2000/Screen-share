@@ -24,7 +24,7 @@
           libdatachannel
           nlohmann_json
           openssl
-          libsrtp
+          srtp
           libnice
           p11-kit
           avahi
