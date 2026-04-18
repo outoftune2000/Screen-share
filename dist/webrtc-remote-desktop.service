@@ -1,0 +1,10 @@
+[Unit]
+Description=WebRTC Remote Desktop
+After=network.target
+
+[Service]
+ExecStart=%h/bin/webrtc-remote-desktop
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

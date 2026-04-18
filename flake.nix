@@ -29,8 +29,8 @@
           p11-kit
           avahi
           libuuid
-          xorg.libxcb
-          xorg.libXfixes
+          libxcb
+          libxfixes
           libva
         ];
 
