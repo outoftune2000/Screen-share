@@ -20,7 +20,7 @@ if(UNIX)
 endif()
 
 if(WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL)
-    find_package(libdatachannel REQUIRED)
+    find_package(LibDataChannel REQUIRED)
 elseif(WEBRTC_REMOTE_DESKTOP_LIBDATACHANNEL_SOURCE_DIR)
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
     add_subdirectory(${WEBRTC_REMOTE_DESKTOP_LIBDATACHANNEL_SOURCE_DIR} ${CMAKE_BINARY_DIR}/_deps/libdatachannel-build)

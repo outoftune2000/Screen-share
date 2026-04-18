@@ -4,13 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    libdatachannel = {
-      url = "github:paullouisageneau/libdatachannel/v0.21.2";
-      flake = false;
-    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, libdatachannel }:
+  outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -25,6 +21,7 @@
         runtimeDeps = with pkgs; [
           SDL2
           ffmpeg
+          libdatachannel
           nlohmann_json
           openssl
           srtp
@@ -53,7 +50,7 @@
 
           cmakeFlags = [
             "-DCMAKE_BUILD_TYPE=Release"
-            "-DWEBRTC_REMOTE_DESKTOP_LIBDATACHANNEL_SOURCE_DIR=${libdatachannel}"
+            "-DWEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL=ON"
           ];
 
           installPhase = ''
