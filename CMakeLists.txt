@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL "Use system-installed libdatachannel instead of fetching" OFF)
+option(WEBRTC_REMOTE_DESKTOP_LIBDATACHANNEL_SOURCE_DIR "Path to libdatachannel source directory" "")
 
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -20,6 +21,9 @@ endif()
 
 if(WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL)
     find_package(libdatachannel REQUIRED)
+elseif(WEBRTC_REMOTE_DESKTOP_LIBDATACHANNEL_SOURCE_DIR)
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    add_subdirectory(${WEBRTC_REMOTE_DESKTOP_LIBDATACHANNEL_SOURCE_DIR} ${CMAKE_BINARY_DIR}/_deps/libdatachannel-build)
 else()
     include(FetchContent)
     FetchContent_Declare(
