@@ -46,6 +46,12 @@ bool ClientRenderer::initialize(const std::string &title, int width,
     decoder_ = std::make_unique<H264Decoder>();
     if (!decoder_->initialize()) {
         std::cerr << "ClientRenderer: H264 decoder init failed\n";
+        SDL_DestroyRenderer(renderer_);
+        renderer_ = nullptr;
+        SDL_DestroyWindow(window_);
+        window_ = nullptr;
+        SDL_Quit();
+        return false;
     }
 
     initialized_ = true;
@@ -114,9 +120,7 @@ void ClientRenderer::stopEventLoop() { running_ = false; }
 
 void ClientRenderer::onDecodedFrame(const DecodedFrame &frame) {
     if (!decoder_ || !decoder_->isInitialized()) {
-        std::lock_guard<std::mutex> lock(frameMutex_);
-        latestFrame_ = frame;
-        hasNewFrame_ = true;
+        std::cerr << "ClientRenderer: dropping frame, decoder not initialized\n";
         return;
     }
 
@@ -186,8 +190,9 @@ void ClientRenderer::handleSdlEvent(const SDL_Event &event) {
     }
 
     case SDL_MOUSEWHEEL: {
+        if (!mouseTrapped_) break;
         InputEvent ie{};
-        ie.eventType = InputEvent::TYPE_MOUSE_MOVE;
+        ie.eventType = InputEvent::TYPE_MOUSE_WHEEL;
         ie.x = static_cast<int16_t>(event.wheel.x);
         ie.y = static_cast<int16_t>(event.wheel.y);
         if (sendInput_) sendInput_(ie);

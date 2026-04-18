@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -41,6 +42,7 @@ public:
                      int64_t pts, std::vector<EncodedFrame> &outputFrames);
 
     void setBitrate(int bitrate);
+    void requestKeyframe();
 
     AVPixelFormat pixelFormat() const;
     bool isHardware() const { return hwAccel_; }
@@ -58,4 +60,5 @@ private:
     bool initialized_ = false;
     bool hwAccel_ = false;
     int targetBitrate_ = 0;
+    std::atomic<bool> keyframeRequested_{false};
 };

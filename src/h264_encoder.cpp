@@ -239,6 +239,10 @@ bool H264Encoder::encodeFrame(const uint8_t *rgbaData, int width, int height,
         encodeFrame = swFrame_;
     }
 
+    if (keyframeRequested_.exchange(false)) {
+        encodeFrame->pict_type = AV_PICTURE_TYPE_I;
+    }
+
     int ret = avcodec_send_frame(codecCtx_, encodeFrame);
     if (ret < 0) {
         av_frame_unref(swFrame_);
@@ -275,6 +279,10 @@ void H264Encoder::setBitrate(int bitrate) {
     if (!initialized_ || !codecCtx_) return;
     targetBitrate_ = bitrate;
     codecCtx_->bit_rate = bitrate;
+}
+
+void H264Encoder::requestKeyframe() {
+    keyframeRequested_.store(true);
 }
 
 AVPixelFormat H264Encoder::pixelFormat() const {

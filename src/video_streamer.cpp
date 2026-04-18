@@ -74,6 +74,7 @@ bool VideoStreamer::setupTrack(std::shared_ptr<rtc::PeerConnection> pc) {
 
     auto pli = std::make_shared<rtc::PliHandler>([this]() {
         std::cout << "VideoStreamer: PLI received, forcing keyframe\n";
+        encoder_.requestKeyframe();
     });
     track_->chainMediaHandler(pli);
 
@@ -87,6 +88,10 @@ void VideoStreamer::setBitrate(int bitrate) {
     std::lock_guard<std::mutex> lock(mutex_);
     bitrate_ = bitrate;
     encoder_.setBitrate(bitrate);
+}
+
+void VideoStreamer::requestKeyframe() {
+    encoder_.requestKeyframe();
 }
 
 void VideoStreamer::captureLoop() {

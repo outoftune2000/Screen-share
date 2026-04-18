@@ -126,6 +126,9 @@ void UInputInjector::inject(const InputEvent &event) {
     case InputEvent::TYPE_KEY_RELEASE:
         handleKeyRelease(event);
         break;
+    case InputEvent::TYPE_MOUSE_WHEEL:
+        handleMouseWheel(event);
+        break;
     default:
         std::cerr << "UInputInjector: unknown event type "
                   << static_cast<int>(event.eventType) << "\n";
@@ -186,5 +189,15 @@ void UInputInjector::handleKeyRelease(const InputEvent &event) {
 }
 
 bool UInputInjector::isInitialized() const { return initialized_; }
+
+void UInputInjector::handleMouseWheel(const InputEvent &event) {
+    if (event.y != 0) {
+        emit(EV_REL, REL_WHEEL, event.y);
+    }
+    if (event.x != 0) {
+        emit(EV_REL, REL_HWHEEL, event.x);
+    }
+    sync();
+}
 
 #endif // __linux__

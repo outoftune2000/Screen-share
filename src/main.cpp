@@ -161,10 +161,6 @@ int main(int argc, char *argv[]) {
             if (state == rtc::PeerConnection::State::Connected) {
                 std::cout << "WebRTC connected!\n";
                 if (mode == RunMode::HOST) {
-                    auto track = webrtcConn->addVideoTrack();
-                    if (track) {
-                        videoStreamer->setupTrack(webrtcConn->peerConnection());
-                    }
                     videoStreamer->startCapture(30, 4000000);
                 }
             } else if (state == rtc::PeerConnection::State::Disconnected ||
@@ -176,6 +172,13 @@ int main(int argc, char *argv[]) {
                 clientRenderer->stopEventLoop();
             }
         });
+
+    if (mode == RunMode::HOST) {
+        webrtcConn->setOnTrackSetup([&videoStreamer](std::shared_ptr<rtc::PeerConnection> pc) {
+            videoStreamer->setupTrack(pc);
+            return true;
+        });
+    }
 
     if (mode == RunMode::CLIENT) {
         webrtcConn->setOnVideoTrack(

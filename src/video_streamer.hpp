@@ -29,6 +29,7 @@ public:
 
     bool isRunning() const;
     void setBitrate(int bitrate);
+    void requestKeyframe();
 
 private:
     void captureLoop();

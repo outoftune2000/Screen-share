@@ -24,6 +24,7 @@ private:
     void handleMouseButton(const InputEvent &event);
     void handleKeyPress(const InputEvent &event);
     void handleKeyRelease(const InputEvent &event);
+    void handleMouseWheel(const InputEvent &event);
 
     int fd_ = -1;
     bool initialized_ = false;

@@ -17,6 +17,9 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
             if (!pc_) {
                 setupPeerConnection();
             }
+            if (onTrackSetup_) {
+                onTrackSetup_(pc_);
+            }
             rtc::Description offer(sdp, "offer");
             pc_->setRemoteDescription(offer);
 
@@ -196,19 +199,6 @@ bool WebRtcConnection::isActive() const {
 
 ConnectionRole WebRtcConnection::role() const { return role_; }
 
-std::shared_ptr<rtc::Track> WebRtcConnection::addVideoTrack() {
-    if (!pc_) return nullptr;
-
-    rtc::Description::Video media("video",
-                                    rtc::Description::Direction::SendOnly);
-    media.addH264Codec(96);
-    media.addSSRC(1234, "video-send");
-
-    videoTrack_ = pc_->addTrack(media);
-    std::cout << "WebRTC: video track added\n";
-    return videoTrack_;
-}
-
 std::shared_ptr<rtc::PeerConnection> WebRtcConnection::peerConnection() {
     return pc_;
 }
@@ -235,4 +225,8 @@ void WebRtcConnection::setOnConnectionStateChange(
 void WebRtcConnection::setOnVideoTrack(
     std::function<void(std::shared_ptr<rtc::Track>)> callback) {
     onVideoTrack_ = std::move(callback);
+}
+
+void WebRtcConnection::setOnTrackSetup(TrackSetupCallback callback) {
+    onTrackSetup_ = std::move(callback);
 }

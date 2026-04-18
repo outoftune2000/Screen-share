@@ -17,6 +17,7 @@ struct InputEvent {
     static constexpr uint8_t TYPE_MOUSE_BUTTON = 1;
     static constexpr uint8_t TYPE_KEY_PRESS = 2;
     static constexpr uint8_t TYPE_KEY_RELEASE = 3;
+    static constexpr uint8_t TYPE_MOUSE_WHEEL = 4;
 
     static constexpr uint8_t FLAG_CTRL = 1;
     static constexpr uint8_t FLAG_ALT = 2;

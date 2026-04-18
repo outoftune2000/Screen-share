@@ -24,7 +24,6 @@ public:
     void close();
 
     void sendInputEvent(const InputEvent &event);
-    std::shared_ptr<rtc::Track> addVideoTrack();
     std::shared_ptr<rtc::PeerConnection> peerConnection();
 
     bool isActive() const;
@@ -36,6 +35,9 @@ public:
     void setOnConnectionStateChange(
         std::function<void(rtc::PeerConnection::State)> callback);
     void setOnVideoTrack(std::function<void(std::shared_ptr<rtc::Track>)> callback);
+
+    using TrackSetupCallback = std::function<bool(std::shared_ptr<rtc::PeerConnection>)>;
+    void setOnTrackSetup(TrackSetupCallback callback);
 
 private:
     void setupPeerConnection();
@@ -56,4 +58,5 @@ private:
     std::function<void(const InputEvent &)> onInputEvent_;
     std::function<void(rtc::PeerConnection::State)> onConnState_;
     std::function<void(std::shared_ptr<rtc::Track>)> onVideoTrack_;
+    TrackSetupCallback onTrackSetup_;
 };
