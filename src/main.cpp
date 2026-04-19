@@ -184,10 +184,10 @@ int main(int argc, char *argv[]) {
         webrtcConn->setOnVideoTrack(
             [&clientRenderer, &webrtcConn, fullscreen](
                 std::shared_ptr<rtc::Track> track) {
-                std::cout << "Client: received video track, setting up renderer\n";
+                std::cout << "DEBUG: Client: received video track, setting up renderer\n";
 
                 track->onFrame([&clientRenderer](rtc::binary data,
-                                                    rtc::FrameInfo info) {
+                                                     rtc::FrameInfo info) {
                     DecodedFrame frame;
                     frame.data.resize(data.size());
                     std::memcpy(frame.data.data(), data.data(), data.size());
@@ -197,15 +197,20 @@ int main(int argc, char *argv[]) {
                     clientRenderer->onDecodedFrame(frame);
                 });
 
+                std::cout << "DEBUG: About to initialize client renderer\n";
                 if (clientRenderer->initialize("WebRTC Remote Desktop",
                                                  1280, 720, fullscreen)) {
+                    std::cout << "DEBUG: Client renderer initialized successfully\n";
                     clientRenderer->setInputSender(
                         [&webrtcConn](const InputEvent &event) {
                             webrtcConn->sendInputEvent(event);
                         });
+                    std::cout << "DEBUG: Starting client renderer thread\n";
                     std::thread([&clientRenderer]() {
                         clientRenderer->runEventLoop();
                     }).detach();
+                } else {
+                    std::cout << "DEBUG: Client renderer initialization failed\n";
                 }
             });
     }
@@ -311,41 +316,41 @@ int main(int argc, char *argv[]) {
     }
 
     // --- Client mode ---
-    if (mode == RunMode::CLIENT) {
-        std::cout << "Connecting to " << clientAddr << ":"
-                  << clientPort << "...\n";
+        if (mode == RunMode::CLIENT) {
+            std::cout << "DEBUG: Client mode - Connecting to " << clientAddr << ":"
+                      << clientPort << "...\n";
 
-        signalingClient->setConnectAcceptHandler([&]() {
-            std::cout << "Connected to host, initiating WebRTC...\n";
-            webrtcConn->initAsClient(*signalingClient);
-        });
-
-        signalingClient->setConnectRejectHandler(
-            [](const std::string &reason) {
-                std::cerr << "Connection rejected: " << reason << "\n";
+            signalingClient->setConnectAcceptHandler([&]() {
+                std::cout << "DEBUG: Connected to host, initiating WebRTC...\n";
+                webrtcConn->initAsClient(*signalingClient);
             });
 
-        if (!signalingClient->connect(clientAddr, clientPort, instanceId)) {
-            std::cerr << "Failed to connect to signaling server\n";
-            mdns.stop();
-            rtc::Cleanup();
-            return 1;
-        }
+            signalingClient->setConnectRejectHandler(
+                [](const std::string &reason) {
+                    std::cerr << "DEBUG: Connection rejected: " << reason << "\n";
+                });
 
-        int retries = 0;
-        while (!signalingClient->isConnected() && g_running && retries < 100) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            retries++;
-        }
+            if (!signalingClient->connect(clientAddr, clientPort, instanceId)) {
+                std::cerr << "Failed to connect to signaling server\n";
+                mdns.stop();
+                rtc::Cleanup();
+                return 1;
+            }
 
-        if (!signalingClient->isConnected()) {
-            std::cerr << "Timed out connecting to signaling server\n";
-        }
+            int retries = 0;
+            while (!signalingClient->isConnected() && g_running && retries < 100) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                retries++;
+            }
 
-        std::cout << "Waiting for video stream... Click inside the window to "
-                     "capture mouse.\n";
-        std::cout << "Press Escape or close window to release mouse.\n";
-    }
+            if (!signalingClient->isConnected()) {
+                std::cerr << "Timed out connecting to signaling server\n";
+            }
+
+            std::cout << "Waiting for video stream... Click inside the window to "
+                         "capture mouse.\n";
+            std::cout << "Press Escape or close window to release mouse.\n";
+        }
 
     // --- Host mode banner ---
     if (mode == RunMode::HOST) {

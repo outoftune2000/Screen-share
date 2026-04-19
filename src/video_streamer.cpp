@@ -12,6 +12,7 @@ VideoStreamer::VideoStreamer() = default;
 VideoStreamer::~VideoStreamer() { stopCapture(); }
 
 bool VideoStreamer::startCapture(int fps, int bitrate) {
+    std::cout << "DEBUG: VideoStreamer::startCapture called\n";
     if (running_) return true;
 
     fps_ = fps;
@@ -22,6 +23,7 @@ bool VideoStreamer::startCapture(int fps, int bitrate) {
         std::cerr << "VideoStreamer: screen capture init failed\n";
         return false;
     }
+    std::cout << "DEBUG: Screen capture initialized (" << capture_->width() << "x" << capture_->height() << ")\n";
 
     H264Encoder::Config encConfig;
     encConfig.width = capture_->width();
@@ -33,6 +35,7 @@ bool VideoStreamer::startCapture(int fps, int bitrate) {
         std::cerr << "VideoStreamer: encoder init failed\n";
         return false;
     }
+    std::cout << "DEBUG: Encoder initialized (" << (encoder_.isHardware() ? "VAAPI" : "software") << ")\n";
 
     running_ = true;
     captureThread_ = std::thread(&VideoStreamer::captureLoop, this);

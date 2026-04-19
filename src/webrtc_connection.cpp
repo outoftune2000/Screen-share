@@ -52,6 +52,7 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
 }
 
 bool WebRtcConnection::initAsClient(SignalingClient &client) {
+    std::cout << "DEBUG: WebRtcConnection::initAsClient called\n";
     client_ = &client;
     server_ = nullptr;
 
@@ -96,7 +97,9 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
             }
         });
 
+    std::cout << "DEBUG: About to setLocalDescription\n";
     pc_->setLocalDescription();
+    std::cout << "DEBUG: initAsClient returning true\n";
     return true;
 }
 
