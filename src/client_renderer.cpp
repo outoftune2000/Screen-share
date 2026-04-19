@@ -6,32 +6,35 @@ ClientRenderer::ClientRenderer() = default;
 ClientRenderer::~ClientRenderer() { shutdown(); }
 
 bool ClientRenderer::initialize(const std::string &title, int width,
-                                  int height, bool fullscreen) {
+                                   int height, bool fullscreen) {
+    std::cout << "DEBUG: ClientRenderer::initialize called\n";
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         std::cerr << "ClientRenderer: SDL_Init failed: " << SDL_GetError()
                   << "\n";
         return false;
     }
+    std::cout << "DEBUG: SDL_Init successful\n";
 
     Uint32 windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
-                          SDL_WINDOW_INPUT_FOCUS;
+                           SDL_WINDOW_INPUT_FOCUS;
     if (fullscreen) {
         windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     }
 
     window_ = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
-                                SDL_WINDOWPOS_CENTERED, width, height,
-                                windowFlags);
+                                 SDL_WINDOWPOS_CENTERED, width, height,
+                                 windowFlags);
     if (!window_) {
         std::cerr << "ClientRenderer: SDL_CreateWindow failed: " << SDL_GetError()
                   << "\n";
         SDL_Quit();
         return false;
     }
+    std::cout << "DEBUG: SDL_CreateWindow successful\n";
 
     renderer_ = SDL_CreateRenderer(window_, -1,
-                                    SDL_RENDERER_ACCELERATED |
-                                    SDL_RENDERER_PRESENTVSYNC);
+                                     SDL_RENDERER_ACCELERATED |
+                                     SDL_RENDERER_PRESENTVSYNC);
     if (!renderer_) {
         std::cerr << "ClientRenderer: SDL_CreateRenderer failed: "
                   << SDL_GetError() << "\n";
@@ -40,6 +43,7 @@ bool ClientRenderer::initialize(const std::string &title, int width,
         SDL_Quit();
         return false;
     }
+    std::cout << "DEBUG: SDL_CreateRenderer successful\n";
 
     SDL_SetWindowTitle(window_, title.c_str());
 
@@ -53,6 +57,7 @@ bool ClientRenderer::initialize(const std::string &title, int width,
         SDL_Quit();
         return false;
     }
+    std::cout << "DEBUG: H264 decoder initialized\n";
 
     initialized_ = true;
     std::cout << "ClientRenderer: initialized (" << width << "x" << height

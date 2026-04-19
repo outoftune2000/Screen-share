@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
                 std::cout << "Client: received video track, setting up renderer\n";
 
                 track->onFrame([&clientRenderer](rtc::binary data,
-                                                   rtc::FrameInfo info) {
+                                                    rtc::FrameInfo info) {
                     DecodedFrame frame;
                     frame.data.resize(data.size());
                     std::memcpy(frame.data.data(), data.data(), data.size());
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
                 });
 
                 if (clientRenderer->initialize("WebRTC Remote Desktop",
-                                                1280, 720, fullscreen)) {
+                                                 1280, 720, fullscreen)) {
                     clientRenderer->setInputSender(
                         [&webrtcConn](const InputEvent &event) {
                             webrtcConn->sendInputEvent(event);
