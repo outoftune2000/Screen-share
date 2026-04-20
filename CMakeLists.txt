@@ -16,7 +16,7 @@ pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavut
 if(UNIX)
     pkg_check_modules(AVAHI REQUIRED IMPORTED_TARGET avahi-client)
     pkg_check_modules(UUID REQUIRED IMPORTED_TARGET uuid)
-    pkg_check_modules(XCB REQUIRED IMPORTED_TARGET xcb xcb-shm xfixes)
+    pkg_check_modules(XCB REQUIRED IMPORTED_TARGET xcb xcb-shm xfixes xcb-randr)
 endif()
 
 if(WEBRTC_REMOTE_DESKTOP_USE_SYSTEM_LIBDATACHANNEL)

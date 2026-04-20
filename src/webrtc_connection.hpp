@@ -44,6 +44,7 @@ private:
     void setupDataChannel(const std::shared_ptr<rtc::DataChannel> &dc);
 
     std::string instanceId_;
+    std::string peerId_;
     ConnectionRole role_;
     std::shared_ptr<rtc::PeerConnection> pc_;
     std::shared_ptr<rtc::DataChannel> dc_;

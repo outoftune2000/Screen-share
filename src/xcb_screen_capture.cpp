@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <xcb/randr.h>
 
 XcbScreenCapture::XcbScreenCapture() = default;
 
@@ -28,9 +29,43 @@ bool XcbScreenCapture::initialize() {
     screen_ = iter.data;
     screenWidth_ = screen_->width_in_pixels;
     screenHeight_ = screen_->height_in_pixels;
+    captureX_ = 0;
+    captureY_ = 0;
 
-    std::cout << "XcbScreenCapture: screen " << screenWidth_ << "x"
-              << screenHeight_ << "\n";
+    xcb_randr_get_output_primary_cookie_t primaryCookie =
+        xcb_randr_get_output_primary(conn_, screen_->root);
+    xcb_randr_get_output_primary_reply_t *primaryReply =
+        xcb_randr_get_output_primary_reply(conn_, primaryCookie, nullptr);
+
+    if (primaryReply) {
+        xcb_randr_get_output_info_cookie_t outputCookie =
+            xcb_randr_get_output_info(conn_, primaryReply->output, XCB_CURRENT_TIME);
+        xcb_randr_get_output_info_reply_t *outputReply =
+            xcb_randr_get_output_info_reply(conn_, outputCookie, nullptr);
+
+        if (outputReply && outputReply->crtc != XCB_NONE) {
+            xcb_randr_get_crtc_info_cookie_t crtcCookie =
+                xcb_randr_get_crtc_info(conn_, outputReply->crtc, XCB_CURRENT_TIME);
+            xcb_randr_get_crtc_info_reply_t *crtcReply =
+                xcb_randr_get_crtc_info_reply(conn_, crtcCookie, nullptr);
+
+            if (crtcReply && crtcReply->width > 0 && crtcReply->height > 0) {
+                captureX_ = crtcReply->x;
+                captureY_ = crtcReply->y;
+                screenWidth_ = crtcReply->width;
+                screenHeight_ = crtcReply->height;
+                std::cout << "XcbScreenCapture: primary output at ("
+                          << captureX_ << "," << captureY_ << ") "
+                          << screenWidth_ << "x" << screenHeight_ << "\n";
+            }
+            free(crtcReply);
+        }
+        free(outputReply);
+        free(primaryReply);
+    }
+
+    std::cout << "XcbScreenCapture: capture region " << screenWidth_ << "x"
+              << screenHeight_ << " at (" << captureX_ << "," << captureY_ << ")\n";
 
     if (!setupShm()) {
         std::cerr << "XcbScreenCapture: SHM setup failed, will use fallback\n";
@@ -105,7 +140,7 @@ std::optional<CapturedFrame> XcbScreenCapture::captureFrame() {
 
     if (shmReady_) {
         xcb_shm_get_image_cookie_t cookie = xcb_shm_get_image(
-            conn_, screen_->root, 0, 0, screenWidth_, screenHeight_,
+            conn_, screen_->root, captureX_, captureY_, screenWidth_, screenHeight_,
             ~0, XCB_IMAGE_FORMAT_Z_PIXMAP, shmSeg_, 0);
 
         xcb_shm_get_image_reply_t *reply =
@@ -120,7 +155,7 @@ std::optional<CapturedFrame> XcbScreenCapture::captureFrame() {
     } else {
         xcb_get_image_cookie_t cookie = xcb_get_image(
             conn_, XCB_IMAGE_FORMAT_Z_PIXMAP, screen_->root,
-            0, 0, screenWidth_, screenHeight_, ~0);
+            captureX_, captureY_, screenWidth_, screenHeight_, ~0);
 
         xcb_get_image_reply_t *reply = xcb_get_image_reply(conn_, cookie, nullptr);
         if (!reply) {

@@ -180,40 +180,38 @@ int main(int argc, char *argv[]) {
         });
     }
 
-    if (mode == RunMode::CLIENT) {
-        webrtcConn->setOnVideoTrack(
-            [&clientRenderer, &webrtcConn, fullscreen](
-                std::shared_ptr<rtc::Track> track) {
-                std::cout << "DEBUG: Client: received video track, setting up renderer\n";
+    webrtcConn->setOnVideoTrack(
+        [&clientRenderer, &webrtcConn, fullscreen](
+            std::shared_ptr<rtc::Track> track) {
+            std::cout << "DEBUG: Client: received video track, setting up renderer\n";
 
-                track->onFrame([&clientRenderer](rtc::binary data,
-                                                     rtc::FrameInfo info) {
-                    DecodedFrame frame;
-                    frame.data.resize(data.size());
-                    std::memcpy(frame.data.data(), data.data(), data.size());
-                    frame.width = 0;
-                    frame.height = 0;
-                    frame.pts = info.timestamp;
-                    clientRenderer->onDecodedFrame(frame);
-                });
-
-                std::cout << "DEBUG: About to initialize client renderer\n";
-                if (clientRenderer->initialize("WebRTC Remote Desktop",
-                                                 1280, 720, fullscreen)) {
-                    std::cout << "DEBUG: Client renderer initialized successfully\n";
-                    clientRenderer->setInputSender(
-                        [&webrtcConn](const InputEvent &event) {
-                            webrtcConn->sendInputEvent(event);
-                        });
-                    std::cout << "DEBUG: Starting client renderer thread\n";
-                    std::thread([&clientRenderer]() {
-                        clientRenderer->runEventLoop();
-                    }).detach();
-                } else {
-                    std::cout << "DEBUG: Client renderer initialization failed\n";
-                }
+            track->onFrame([&clientRenderer](rtc::binary data,
+                                                 rtc::FrameInfo info) {
+                DecodedFrame frame;
+                frame.data.resize(data.size());
+                std::memcpy(frame.data.data(), data.data(), data.size());
+                frame.width = 0;
+                frame.height = 0;
+                frame.pts = info.timestamp;
+                clientRenderer->onDecodedFrame(frame);
             });
-    }
+
+            std::cout << "DEBUG: About to initialize client renderer\n";
+            if (clientRenderer->initialize("WebRTC Remote Desktop",
+                                             1280, 720, fullscreen)) {
+                std::cout << "DEBUG: Client renderer initialized successfully\n";
+                clientRenderer->setInputSender(
+                    [&webrtcConn](const InputEvent &event) {
+                        webrtcConn->sendInputEvent(event);
+                    });
+                std::cout << "DEBUG: Starting client renderer thread\n";
+                std::thread([&clientRenderer]() {
+                    clientRenderer->runEventLoop();
+                }).detach();
+            } else {
+                std::cout << "DEBUG: Client renderer initialization failed\n";
+            }
+        });
 
     if (mode == RunMode::HOST) {
         signalingServer->setConnectRequestHandler(

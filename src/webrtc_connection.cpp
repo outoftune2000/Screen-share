@@ -8,16 +8,31 @@ WebRtcConnection::WebRtcConnection(const std::string &instanceId,
 WebRtcConnection::~WebRtcConnection() { close(); }
 
 bool WebRtcConnection::initAsHost(SignalingServer &server) {
+    std::cout << "DEBUG: WebRtcConnection::initAsHost called\n";
     server_ = &server;
     client_ = nullptr;
 
     server.setSdpOfferHandler(
         [this](const std::string &peerId, const std::string &sdp) {
-            std::cout << "WebRTC: received SDP offer from " << peerId << "\n";
+            std::cout << "DEBUG: WebRTC: received SDP offer from " << peerId << "\n";
+            peerId_ = peerId;
             if (!pc_) {
+                std::cout << "DEBUG: Creating peer connection\n";
                 setupPeerConnection();
+
+                pc_->onLocalCandidate([this](rtc::Candidate candidate) {
+                    std::cout << "WebRTC: local ICE candidate gathered (host)\n";
+                    if (server_ && !peerId_.empty()) {
+                        sig::SignalingMessage msg;
+                        msg.type = sig::MessageType::ICE_CANDIDATE;
+                        msg.instanceId = instanceId_;
+                        msg.payload = std::string(candidate);
+                        server_->sendTo(peerId_, msg);
+                    }
+                });
             }
             if (onTrackSetup_) {
+                std::cout << "DEBUG: Calling onTrackSetup handler\n";
                 onTrackSetup_(pc_);
             }
             rtc::Description offer(sdp, "offer");
@@ -48,6 +63,7 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
             }
         });
 
+    std::cout << "DEBUG: initAsHost returning true\n";
     return true;
 }
 

@@ -27,6 +27,8 @@ private:
     xcb_screen_t *screen_ = nullptr;
     int screenWidth_ = 0;
     int screenHeight_ = 0;
+    int captureX_ = 0;
+    int captureY_ = 0;
 
     xcb_shm_seg_t shmSeg_ = 0;
     int shmId_ = -1;
