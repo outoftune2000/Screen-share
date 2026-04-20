@@ -37,16 +37,16 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
             }
             rtc::Description offer(sdp, "offer");
             pc_->setRemoteDescription(offer);
+            pc_->setLocalDescription();
 
-            auto answer = pc_->localDescription();
-            if (answer) {
+            pc_->onLocalDescription([this, peerId](rtc::Description desc) {
                 sig::SignalingMessage msg;
                 msg.type = sig::MessageType::SDP_ANSWER;
                 msg.instanceId = instanceId_;
-                msg.payload = std::string(*answer);
+                msg.payload = std::string(desc);
                 server_->sendTo(peerId, msg);
                 std::cout << "WebRTC: sent SDP answer to " << peerId << "\n";
-            }
+            });
         });
 
     server.setIceCandidateHandler(
