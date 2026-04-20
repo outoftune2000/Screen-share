@@ -49,6 +49,8 @@ private:
     std::shared_ptr<rtc::PeerConnection> pc_;
     std::shared_ptr<rtc::DataChannel> dc_;
     std::shared_ptr<rtc::Track> videoTrack_;
+    std::vector<std::string> pendingRemoteCandidates_;
+    bool remoteDescriptionSet_ = false;
     SignalingServer *server_ = nullptr;
     SignalingClient *client_ = nullptr;
     bool active_ = false;

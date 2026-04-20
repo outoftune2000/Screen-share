@@ -37,6 +37,16 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
             }
             rtc::Description offer(sdp, "offer");
             pc_->setRemoteDescription(offer);
+            remoteDescriptionSet_ = true;
+            for (const auto &c : pendingRemoteCandidates_) {
+                try {
+                    pc_->addRemoteCandidate(rtc::Candidate(c, "0"));
+                } catch (const std::exception &e) {
+                    std::cerr << "WebRTC: failed to add buffered ICE candidate: "
+                              << e.what() << "\n";
+                }
+            }
+            pendingRemoteCandidates_.clear();
             std::cout << "DEBUG: Host: setRemoteDescription done, calling setLocalDescription\n" << std::flush;
             pc_->setLocalDescription();
 
@@ -59,13 +69,18 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
     server.setIceCandidateHandler(
         [this](const std::string &peerId, const std::string &candidate) {
             std::cout << "WebRTC: received ICE candidate from " << peerId
-                      << "\n";
+                      << "\n" << std::flush;
             if (pc_) {
-                try {
-                    pc_->addRemoteCandidate(rtc::Candidate(candidate, "0"));
-                } catch (const std::exception &e) {
-                    std::cerr << "WebRTC: failed to add ICE candidate: "
-                              << e.what() << "\n";
+                if (!remoteDescriptionSet_) {
+                    std::cout << "DEBUG: Host: buffering ICE candidate (no remote desc yet)\n" << std::flush;
+                    pendingRemoteCandidates_.push_back(candidate);
+                } else {
+                    try {
+                        pc_->addRemoteCandidate(rtc::Candidate(candidate, "0"));
+                    } catch (const std::exception &e) {
+                        std::cerr << "WebRTC: failed to add ICE candidate: "
+                                  << e.what() << "\n";
+                    }
                 }
             }
         });
@@ -92,21 +107,36 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
 
     client.setSdpAnswerHandler(
         [this](const std::string &peerId, const std::string &sdp) {
-            std::cout << "WebRTC: received SDP answer\n";
+            std::cout << "WebRTC: received SDP answer\n" << std::flush;
             if (pc_) {
                 rtc::Description answer(sdp, "answer");
                 pc_->setRemoteDescription(answer);
+                remoteDescriptionSet_ = true;
+                for (const auto &c : pendingRemoteCandidates_) {
+                    try {
+                        pc_->addRemoteCandidate(rtc::Candidate(c, "0"));
+                    } catch (const std::exception &e) {
+                        std::cerr << "WebRTC: failed to add buffered ICE candidate: "
+                                  << e.what() << "\n";
+                    }
+                }
+                pendingRemoteCandidates_.clear();
             }
         });
 
     client.setIceCandidateHandler(
         [this](const std::string &peerId, const std::string &candidate) {
             if (pc_) {
-                try {
-                    pc_->addRemoteCandidate(rtc::Candidate(candidate, "0"));
-                } catch (const std::exception &e) {
-                    std::cerr << "WebRTC: failed to add ICE candidate: "
-                              << e.what() << "\n";
+                if (!remoteDescriptionSet_) {
+                    std::cout << "DEBUG: Client: buffering ICE candidate (no remote desc yet)\n" << std::flush;
+                    pendingRemoteCandidates_.push_back(candidate);
+                } else {
+                    try {
+                        pc_->addRemoteCandidate(rtc::Candidate(candidate, "0"));
+                    } catch (const std::exception &e) {
+                        std::cerr << "WebRTC: failed to add ICE candidate: "
+                                  << e.what() << "\n";
+                    }
                 }
             }
         });
