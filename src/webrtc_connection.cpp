@@ -30,16 +30,6 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
                         server_->sendTo(peerId_, msg);
                     }
                 });
-
-                pc_->onLocalDescription([this, peerId](rtc::Description desc) {
-                    std::cout << "DEBUG: Host: local description created, type=" << desc.typeString() << "\n" << std::flush;
-                    sig::SignalingMessage msg;
-                    msg.type = sig::MessageType::SDP_ANSWER;
-                    msg.instanceId = instanceId_;
-                    msg.payload = std::string(desc);
-                    server_->sendTo(peerId_, msg);
-                    std::cout << "WebRTC: sent SDP answer to " << peerId << "\n" << std::flush;
-                });
             }
             if (onTrackSetup_) {
                 std::cout << "DEBUG: Calling onTrackSetup handler\n" << std::flush;
@@ -49,7 +39,21 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
             pc_->setRemoteDescription(offer);
             std::cout << "DEBUG: Host: setRemoteDescription done, calling setLocalDescription\n" << std::flush;
             pc_->setLocalDescription();
-            std::cout << "DEBUG: Host: setLocalDescription called\n" << std::flush;
+
+            auto localDesc = pc_->localDescription();
+            if (localDesc) {
+                std::string answerSdp = std::string(*localDesc);
+                std::cout << "DEBUG: Host: got local description, type=" << localDesc->typeString()
+                          << " size=" << answerSdp.size() << "\n" << std::flush;
+                sig::SignalingMessage msg;
+                msg.type = sig::MessageType::SDP_ANSWER;
+                msg.instanceId = instanceId_;
+                msg.payload = answerSdp;
+                server_->sendTo(peerId_, msg);
+                std::cout << "WebRTC: sent SDP answer to " << peerId << "\n" << std::flush;
+            } else {
+                std::cout << "DEBUG: Host: localDescription() returned null!\n" << std::flush;
+            }
         });
 
     server.setIceCandidateHandler(
@@ -81,16 +85,6 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
     setupDataChannel(dc);
     dc_ = dc;
 
-    pc_->onLocalDescription([this](rtc::Description desc) {
-        std::string type = desc.typeString();
-        std::cout << "DEBUG: Client: local description created, type=" << type << "\n" << std::flush;
-
-        if (type == "offer") {
-            client_->sendSdpOffer(std::string(desc));
-            std::cout << "DEBUG: Client: SDP offer sent\n" << std::flush;
-        }
-    });
-
     pc_->onLocalCandidate([this](rtc::Candidate candidate) {
         std::cout << "DEBUG: Client: local ICE candidate gathered\n" << std::flush;
         client_->sendIceCandidate(std::string(candidate));
@@ -117,8 +111,20 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
             }
         });
 
-    std::cout << "DEBUG: About to setLocalDescription\n";
+    std::cout << "DEBUG: About to setLocalDescription\n" << std::flush;
     pc_->setLocalDescription();
+
+    auto localDesc = pc_->localDescription();
+    if (localDesc) {
+        std::string sdp = std::string(*localDesc);
+        std::cout << "DEBUG: Client: got local description, type=" << localDesc->typeString()
+                  << " size=" << sdp.size() << "\n" << std::flush;
+        client_->sendSdpOffer(sdp);
+        std::cout << "DEBUG: Client: SDP offer sent\n" << std::flush;
+    } else {
+        std::cout << "DEBUG: Client: localDescription() returned null!\n" << std::flush;
+    }
+
     std::cout << "DEBUG: initAsClient returning true\n";
     return true;
 }
