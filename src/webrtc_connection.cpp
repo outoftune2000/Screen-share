@@ -14,14 +14,14 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
 
     server.setSdpOfferHandler(
         [this](const std::string &peerId, const std::string &sdp) {
-            std::cout << "DEBUG: WebRTC: received SDP offer from " << peerId << "\n";
+            std::cout << "DEBUG: WebRTC: received SDP offer from " << peerId << "\n" << std::flush;
             peerId_ = peerId;
             if (!pc_) {
-                std::cout << "DEBUG: Creating peer connection\n";
+                std::cout << "DEBUG: Creating peer connection\n" << std::flush;
                 setupPeerConnection();
 
                 pc_->onLocalCandidate([this](rtc::Candidate candidate) {
-                    std::cout << "WebRTC: local ICE candidate gathered (host)\n";
+                    std::cout << "WebRTC: local ICE candidate gathered (host)\n" << std::flush;
                     if (server_ && !peerId_.empty()) {
                         sig::SignalingMessage msg;
                         msg.type = sig::MessageType::ICE_CANDIDATE;
@@ -30,23 +30,26 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
                         server_->sendTo(peerId_, msg);
                     }
                 });
+
+                pc_->onLocalDescription([this, peerId](rtc::Description desc) {
+                    std::cout << "DEBUG: Host: local description created, type=" << desc.typeString() << "\n" << std::flush;
+                    sig::SignalingMessage msg;
+                    msg.type = sig::MessageType::SDP_ANSWER;
+                    msg.instanceId = instanceId_;
+                    msg.payload = std::string(desc);
+                    server_->sendTo(peerId_, msg);
+                    std::cout << "WebRTC: sent SDP answer to " << peerId << "\n" << std::flush;
+                });
             }
             if (onTrackSetup_) {
-                std::cout << "DEBUG: Calling onTrackSetup handler\n";
+                std::cout << "DEBUG: Calling onTrackSetup handler\n" << std::flush;
                 onTrackSetup_(pc_);
             }
             rtc::Description offer(sdp, "offer");
             pc_->setRemoteDescription(offer);
+            std::cout << "DEBUG: Host: setRemoteDescription done, calling setLocalDescription\n" << std::flush;
             pc_->setLocalDescription();
-
-            pc_->onLocalDescription([this, peerId](rtc::Description desc) {
-                sig::SignalingMessage msg;
-                msg.type = sig::MessageType::SDP_ANSWER;
-                msg.instanceId = instanceId_;
-                msg.payload = std::string(desc);
-                server_->sendTo(peerId, msg);
-                std::cout << "WebRTC: sent SDP answer to " << peerId << "\n";
-            });
+            std::cout << "DEBUG: Host: setLocalDescription called\n" << std::flush;
         });
 
     server.setIceCandidateHandler(
@@ -80,15 +83,16 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
 
     pc_->onLocalDescription([this](rtc::Description desc) {
         std::string type = desc.typeString();
-        std::cout << "WebRTC: local " << type << " created\n";
+        std::cout << "DEBUG: Client: local description created, type=" << type << "\n" << std::flush;
 
         if (type == "offer") {
             client_->sendSdpOffer(std::string(desc));
+            std::cout << "DEBUG: Client: SDP offer sent\n" << std::flush;
         }
     });
 
     pc_->onLocalCandidate([this](rtc::Candidate candidate) {
-        std::cout << "WebRTC: local ICE candidate gathered\n";
+        std::cout << "DEBUG: Client: local ICE candidate gathered\n" << std::flush;
         client_->sendIceCandidate(std::string(candidate));
     });
 

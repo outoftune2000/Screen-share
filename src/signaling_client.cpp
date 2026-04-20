@@ -74,11 +74,13 @@ void SignalingClient::sendConnectRequest() {
 }
 
 void SignalingClient::sendSdpOffer(const std::string &sdp) {
+    std::cout << "DEBUG: SignalingClient::sendSdpOffer size=" << sdp.size() << "\n" << std::flush;
     sig::SignalingMessage msg;
     msg.type = sig::MessageType::SDP_OFFER;
     msg.instanceId = instanceId_;
     msg.payload = sdp;
     ws_->send(sig::serializeMessage(msg));
+    std::cout << "DEBUG: SignalingClient::sendSdpOffer sent\n" << std::flush;
 }
 
 void SignalingClient::sendSdpAnswer(const std::string &sdp) {
@@ -90,6 +92,7 @@ void SignalingClient::sendSdpAnswer(const std::string &sdp) {
 }
 
 void SignalingClient::sendIceCandidate(const std::string &candidate) {
+    std::cout << "DEBUG: SignalingClient::sendIceCandidate\n" << std::flush;
     sig::SignalingMessage msg;
     msg.type = sig::MessageType::ICE_CANDIDATE;
     msg.instanceId = instanceId_;
@@ -123,6 +126,10 @@ void SignalingClient::setIceCandidateHandler(
 
 void SignalingClient::handleMessage(const std::string &data) {
     auto msg = sig::deserializeMessage(data);
+
+    std::cout << "DEBUG: SignalingClient: received message type="
+              << sig::messageTypeToString(msg.type) << " payload_len="
+              << msg.payload.size() << "\n" << std::flush;
 
     switch (msg.type) {
     case sig::MessageType::CONNECT_ACCEPT:

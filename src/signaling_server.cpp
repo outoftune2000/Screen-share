@@ -102,6 +102,10 @@ void SignalingServer::handleMessage(
     const std::string &data, const std::shared_ptr<rtc::WebSocket> &ws) {
     auto msg = sig::deserializeMessage(data);
 
+    std::cout << "DEBUG: SignalingServer: received message type="
+              << sig::messageTypeToString(msg.type) << " from "
+              << msg.instanceId << " payload_len=" << msg.payload.size() << "\n" << std::flush;
+
     switch (msg.type) {
     case sig::MessageType::CONNECT_REQUEST: {
         std::cout << "SignalingServer: connect request from "
