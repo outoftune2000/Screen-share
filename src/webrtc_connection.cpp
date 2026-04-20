@@ -12,108 +12,9 @@ bool WebRtcConnection::initAsHost(SignalingServer &server) {
     server_ = &server;
     client_ = nullptr;
 
-    server.setSdpOfferHandler(
+    server.setSdpAnswerHandler(
         [this](const std::string &peerId, const std::string &sdp) {
-            std::cout << "DEBUG: WebRTC: received SDP offer from " << peerId << "\n" << std::flush;
-            peerId_ = peerId;
-
-            if (pc_) {
-                pc_->close();
-                pc_.reset();
-                remoteDescriptionSet_ = false;
-                pendingRemoteCandidates_.clear();
-            }
-
-            setupPeerConnection();
-
-            pc_->onLocalCandidate([this](rtc::Candidate candidate) {
-                std::cout << "WebRTC: local ICE candidate gathered (host)\n" << std::flush;
-                if (server_ && !peerId_.empty()) {
-                    sig::SignalingMessage msg;
-                    msg.type = sig::MessageType::ICE_CANDIDATE;
-                    msg.instanceId = instanceId_;
-                    msg.payload = std::string(candidate);
-                    server_->sendTo(peerId_, msg);
-                }
-            });
-
-            rtc::Description offer(sdp, "offer");
-            pc_->setRemoteDescription(offer);
-            remoteDescriptionSet_ = true;
-            for (const auto &c : pendingRemoteCandidates_) {
-                try {
-                    pc_->addRemoteCandidate(rtc::Candidate(c, "0"));
-                } catch (const std::exception &e) {
-                    std::cerr << "WebRTC: failed to add buffered ICE candidate: "
-                              << e.what() << "\n";
-                }
-            }
-            pendingRemoteCandidates_.clear();
-
-            if (onTrackSetup_) {
-                std::cout << "DEBUG: Calling onTrackSetup handler\n" << std::flush;
-                onTrackSetup_(pc_);
-            }
-
-            pc_->setLocalDescription();
-
-            auto localDesc = pc_->localDescription();
-            if (localDesc) {
-                std::cout << "DEBUG: Host: got local description, type=" << localDesc->typeString()
-                          << " size=" << std::string(*localDesc).size() << "\n" << std::flush;
-                sig::SignalingMessage msg;
-                msg.type = sig::MessageType::SDP_ANSWER;
-                msg.instanceId = instanceId_;
-                msg.payload = std::string(*localDesc);
-                server_->sendTo(peerId_, msg);
-                std::cout << "WebRTC: sent SDP answer to " << peerId << "\n" << std::flush;
-            } else {
-                std::cout << "DEBUG: Host: localDescription() returned null!\n" << std::flush;
-            }
-        });
-
-    server.setIceCandidateHandler(
-        [this](const std::string &peerId, const std::string &candidate) {
-            std::cout << "WebRTC: received ICE candidate from " << peerId
-                      << "\n" << std::flush;
-            if (pc_) {
-                if (!remoteDescriptionSet_) {
-                    std::cout << "DEBUG: Host: buffering ICE candidate (no remote desc yet)\n" << std::flush;
-                    pendingRemoteCandidates_.push_back(candidate);
-                } else {
-                    try {
-                        pc_->addRemoteCandidate(rtc::Candidate(candidate, "0"));
-                    } catch (const std::exception &e) {
-                        std::cerr << "WebRTC: failed to add ICE candidate: "
-                                  << e.what() << "\n";
-                    }
-                }
-            }
-        });
-
-    std::cout << "DEBUG: initAsHost returning true\n";
-    return true;
-}
-
-bool WebRtcConnection::initAsClient(SignalingClient &client) {
-    std::cout << "DEBUG: WebRtcConnection::initAsClient called\n";
-    client_ = &client;
-    server_ = nullptr;
-
-    setupPeerConnection();
-
-    auto dc = pc_->createDataChannel("input");
-    setupDataChannel(dc);
-    dc_ = dc;
-
-    pc_->onLocalCandidate([this](rtc::Candidate candidate) {
-        std::cout << "DEBUG: Client: local ICE candidate gathered\n" << std::flush;
-        client_->sendIceCandidate(std::string(candidate));
-    });
-
-    client.setSdpAnswerHandler(
-        [this](const std::string &peerId, const std::string &sdp) {
-            std::cout << "WebRTC: received SDP answer\n" << std::flush;
+            std::cout << "DEBUG: Host: received SDP answer from " << peerId << "\n" << std::flush;
             if (pc_) {
                 rtc::Description answer(sdp, "answer");
                 pc_->setRemoteDescription(answer);
@@ -130,11 +31,12 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
             }
         });
 
-    client.setIceCandidateHandler(
+    server.setIceCandidateHandler(
         [this](const std::string &peerId, const std::string &candidate) {
+            std::cout << "DEBUG: Host: received ICE candidate from " << peerId << "\n" << std::flush;
             if (pc_) {
                 if (!remoteDescriptionSet_) {
-                    std::cout << "DEBUG: Client: buffering ICE candidate (no remote desc yet)\n" << std::flush;
+                    std::cout << "DEBUG: Host: buffering ICE candidate\n" << std::flush;
                     pendingRemoteCandidates_.push_back(candidate);
                 } else {
                     try {
@@ -147,19 +49,128 @@ bool WebRtcConnection::initAsClient(SignalingClient &client) {
             }
         });
 
-    std::cout << "DEBUG: About to setLocalDescription\n" << std::flush;
+    std::cout << "DEBUG: initAsHost returning true\n";
+    return true;
+}
+
+bool WebRtcConnection::startHostSession(const std::string &peerId) {
+    std::cout << "DEBUG: WebRtcConnection::startHostSession(" << peerId << ")\n" << std::flush;
+    peerId_ = peerId;
+    remoteDescriptionSet_ = false;
+    pendingRemoteCandidates_.clear();
+
+    if (pc_) {
+        pc_->close();
+        pc_.reset();
+    }
+
+    setupPeerConnection();
+
+    pc_->onLocalCandidate([this](rtc::Candidate candidate) {
+        std::cout << "WebRTC: local ICE candidate gathered (host)\n" << std::flush;
+        if (server_ && !peerId_.empty()) {
+            sig::SignalingMessage msg;
+            msg.type = sig::MessageType::ICE_CANDIDATE;
+            msg.instanceId = instanceId_;
+            msg.payload = std::string(candidate);
+            server_->sendTo(peerId_, msg);
+        }
+    });
+
+    if (onTrackSetup_) {
+        std::cout << "DEBUG: Host: adding video track\n" << std::flush;
+        onTrackSetup_(pc_);
+    }
+
+    auto dc = pc_->createDataChannel("input");
+    dc_ = dc;
+    setupDataChannel(dc);
+
     pc_->setLocalDescription();
 
     auto localDesc = pc_->localDescription();
     if (localDesc) {
-        std::string sdp = std::string(*localDesc);
-        std::cout << "DEBUG: Client: got local description, type=" << localDesc->typeString()
-                  << " size=" << sdp.size() << "\n" << std::flush;
-        client_->sendSdpOffer(sdp);
-        std::cout << "DEBUG: Client: SDP offer sent\n" << std::flush;
+        std::cout << "DEBUG: Host: got local description, type=" << localDesc->typeString()
+                  << " size=" << std::string(*localDesc).size() << "\n" << std::flush;
+        sig::SignalingMessage msg;
+        msg.type = sig::MessageType::SDP_OFFER;
+        msg.instanceId = instanceId_;
+        msg.payload = std::string(*localDesc);
+        server_->sendTo(peerId_, msg);
+        std::cout << "WebRTC: sent SDP offer to " << peerId << "\n" << std::flush;
     } else {
-        std::cout << "DEBUG: Client: localDescription() returned null!\n" << std::flush;
+        std::cout << "DEBUG: Host: localDescription() returned null!\n" << std::flush;
+        return false;
     }
+
+    return true;
+}
+
+bool WebRtcConnection::initAsClient(SignalingClient &client) {
+    std::cout << "DEBUG: WebRtcConnection::initAsClient called\n";
+    client_ = &client;
+    server_ = nullptr;
+    remoteDescriptionSet_ = false;
+    pendingRemoteCandidates_.clear();
+
+    setupPeerConnection();
+
+    pc_->onLocalCandidate([this](rtc::Candidate candidate) {
+        std::cout << "DEBUG: Client: local ICE candidate gathered\n" << std::flush;
+        if (client_) {
+            client_->sendIceCandidate(std::string(candidate));
+        }
+    });
+
+    client.setSdpOfferHandler(
+        [this](const std::string &peerId, const std::string &sdp) {
+            std::cout << "DEBUG: Client: received SDP offer from " << peerId << "\n" << std::flush;
+            if (pc_) {
+                rtc::Description offer(sdp, "offer");
+                pc_->setRemoteDescription(offer);
+                remoteDescriptionSet_ = true;
+                for (const auto &c : pendingRemoteCandidates_) {
+                    try {
+                        pc_->addRemoteCandidate(rtc::Candidate(c, "0"));
+                    } catch (const std::exception &e) {
+                        std::cerr << "WebRTC: failed to add buffered ICE candidate: "
+                                  << e.what() << "\n";
+                    }
+                }
+                pendingRemoteCandidates_.clear();
+
+                pc_->setLocalDescription();
+
+                auto localDesc = pc_->localDescription();
+                if (localDesc) {
+                    std::cout << "DEBUG: Client: got local description, type=" << localDesc->typeString()
+                              << " size=" << std::string(*localDesc).size() << "\n" << std::flush;
+                    if (client_) {
+                        client_->sendSdpAnswer(std::string(*localDesc));
+                        std::cout << "DEBUG: Client: SDP answer sent\n" << std::flush;
+                    }
+                } else {
+                    std::cout << "DEBUG: Client: localDescription() returned null!\n" << std::flush;
+                }
+            }
+        });
+
+    client.setIceCandidateHandler(
+        [this](const std::string &peerId, const std::string &candidate) {
+            if (pc_) {
+                if (!remoteDescriptionSet_) {
+                    std::cout << "DEBUG: Client: buffering ICE candidate\n" << std::flush;
+                    pendingRemoteCandidates_.push_back(candidate);
+                } else {
+                    try {
+                        pc_->addRemoteCandidate(rtc::Candidate(candidate, "0"));
+                    } catch (const std::exception &e) {
+                        std::cerr << "WebRTC: failed to add ICE candidate: "
+                                  << e.what() << "\n";
+                    }
+                }
+            }
+        });
 
     std::cout << "DEBUG: initAsClient returning true\n";
     return true;

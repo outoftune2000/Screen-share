@@ -226,6 +226,12 @@ int main(int argc, char *argv[]) {
                 return true;
             });
 
+        signalingServer->setClientAcceptedHandler(
+            [&webrtcConn](const std::string &peerId) {
+                std::cout << "DEBUG: Client accepted, starting host session\n" << std::flush;
+                webrtcConn->startHostSession(peerId);
+            });
+
         signalingServer->setDisconnectHandler(
             [&stateMachine, &videoStreamer](const std::string &peerId) {
                 std::cout << "Peer disconnected: " << peerId << "\n";

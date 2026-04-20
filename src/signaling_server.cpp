@@ -88,6 +88,11 @@ void SignalingServer::setDisconnectHandler(
     disconnectHandler_ = std::move(handler);
 }
 
+void SignalingServer::setClientAcceptedHandler(
+    std::function<void(const std::string &)> handler) {
+    clientAcceptedHandler_ = std::move(handler);
+}
+
 void SignalingServer::sendTo(const std::string &instanceId,
                               const sig::SignalingMessage &msg) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -125,6 +130,9 @@ void SignalingServer::handleMessage(
             ws->send(sig::serializeMessage(acceptMsg));
             std::cout << "SignalingServer: accepted connection from "
                       << msg.instanceId << "\n";
+            if (clientAcceptedHandler_) {
+                clientAcceptedHandler_(msg.instanceId);
+            }
         } else {
             sig::SignalingMessage rejectMsg;
             rejectMsg.type = sig::MessageType::CONNECT_REJECT;

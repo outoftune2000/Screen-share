@@ -19,6 +19,7 @@ public:
     ~WebRtcConnection();
 
     bool initAsHost(SignalingServer &server);
+    bool startHostSession(const std::string &peerId);
     bool initAsClient(SignalingClient &client);
 
     void close();

@@ -34,6 +34,9 @@ public:
     void setDisconnectHandler(
         std::function<void(const std::string &instanceId)> handler);
 
+    void setClientAcceptedHandler(
+        std::function<void(const std::string &instanceId)> handler);
+
     void sendTo(const std::string &instanceId, const sig::SignalingMessage &msg);
 
 private:
@@ -50,4 +53,5 @@ private:
     std::function<void(const std::string &, const std::string &)> sdpAnswerHandler_;
     std::function<void(const std::string &, const std::string &)> iceCandidateHandler_;
     std::function<void(const std::string &)> disconnectHandler_;
+    std::function<void(const std::string &)> clientAcceptedHandler_;
 };
