@@ -24,7 +24,8 @@ bool SignalingClient::connect(const std::string &host, uint16_t port,
     ws_->onMessage([this](rtc::message_variant data) {
         if (std::holds_alternative<rtc::binary>(data)) {
             const auto &bin = std::get<rtc::binary>(data);
-            handleMessage(std::string(bin.begin(), bin.end()));
+            //handleMessage(std::string(bin.begin(), bin.end()));
+	    handleMessage(std::string(reinterpret_cast<const char*>(bin.data()), bin.size()));
         } else if (std::holds_alternative<std::string>(data)) {
             handleMessage(std::get<std::string>(data));
         }
